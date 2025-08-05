@@ -1,0 +1,616 @@
+<script type="text/javascript">
+        var gk_isXlsx = false;
+        var gk_xlsxFileLookup = {};
+        var gk_fileData = {};
+        function filledCell(cell) {
+          return cell !== '' && cell != null;
+        }
+        function loadFileData(filename) {
+        if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
+            try {
+                var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
+                var firstSheetName = workbook.SheetNames[0];
+                var worksheet = workbook.Sheets[firstSheetName];
+
+                // Convert sheet to JSON to filter blank rows
+                var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
+                // Filter out blank rows (rows where all cells are empty, null, or undefined)
+                var filteredData = jsonData.filter(row => row.some(filledCell));
+
+                // Heuristic to find the header row by ignoring rows with fewer filled cells than the next row
+                var headerRowIndex = filteredData.findIndex((row, index) =>
+                  row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length
+                );
+                // Fallback
+                if (headerRowIndex === -1 || headerRowIndex > 25) {
+                  headerRowIndex = 0;
+                }
+
+                // Convert filtered JSON back to CSV
+                var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex)); // Create a new sheet from filtered array of arrays
+                csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
+                return csv;
+            } catch (e) {
+                console.error(e);
+                return "";
+            }
+        }
+        return gk_fileData[filename] || "";
+        }
+        </script><!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>InvestWise - Smart Investing</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: Arial, sans-serif;
+        }
+
+        body {
+            background-color: #f0f2f5;
+        }
+
+        nav {
+            background-color: #2563eb;
+            color: white;
+            padding: 1rem;
+            position: fixed;
+            width: 100%;
+            top: 0;
+        }
+
+        .nav-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .nav-logo {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 1.5rem;
+            font-weight: bold;
+        }
+
+        .nav-links a {
+            color: white;
+            text-decoration: none;
+            margin-left: 1rem;
+            font-size: 1rem;
+        }
+
+        .nav-links a:hover {
+            color: #bfdbfe;
+        }
+
+        .section {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 5rem 1rem 2rem;
+        }
+
+        .content {
+            max-width: 500px;
+            text-align: center;
+        }
+
+        .content h2 {
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+            color: #1f2937;
+        }
+
+        .content p {
+            font-size: 1.1rem;
+            margin-bottom: 2rem;
+            color: #4b5563;
+        }
+
+        .btn {
+            background-color: #2563eb;
+            color: white;
+            padding: 0.75rem 1.5rem;
+            text-decoration: none;
+            border-radius: 0.375rem;
+            font-size: 1rem;
+            display: inline-block;
+        }
+
+        .btn:hover {
+            background-color: #1d4ed8;
+        }
+
+        .form-container {
+            background-color: white;
+            padding: 2rem;
+            border-radius: 0.5rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 400px;
+        }
+
+        .form-container h2 {
+            font-size: 1.75rem;
+            margin-bottom: 1.5rem;
+            text-align: center;
+            color: #1f2937;
+        }
+
+        .form-group {
+            margin-bottom: 1rem;
+            text-align: left;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 0.875rem;
+            color: #1f2937;
+            margin-bottom: 0.25rem;
+        }
+
+        .form-group input, .form-group select {
+            width: 100%;
+            padding: 0.5rem;
+            border: 1px solid #d1d5db;
+            border-radius: 0.375rem;
+            font-size: 1rem;
+        }
+
+        .form-group input:focus, .form-group select:focus {
+            outline: none;
+            border-color: #2563eb;
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        }
+
+        .error {
+            color: #dc2626;
+            font-size: 0.875rem;
+            margin-bottom: 1rem;
+            text-align: center;
+        }
+
+        .form-container button {
+            width: 100%;
+            background-color: #2563eb;
+            color: white;
+            padding: 0.75rem;
+            border: none;
+            border-radius: 0.375rem;
+            font-size: 1rem;
+            cursor: pointer;
+        }
+
+        .form-container button:hover {
+            background-color: #1d4ed8;
+        }
+
+        .dashboard {
+            background-image: url('https://via.placeholder.com/1200x800.png?text=Ugandan+Currency+Notes');
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            position: relative;
+            padding: 2rem;
+            border-radius: 0.5rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 600px;
+        }
+
+        .dashboard::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(255, 255, 255, 0.8); /* Semi-transparent white overlay for readability */
+            border-radius: 0.5rem;
+        }
+
+        .dashboard * {
+            position: relative; /* Ensure content is above the overlay */
+            z-index: 1;
+        }
+
+        .dashboard h2 {
+            font-size: 1.75rem;
+            margin-bottom: 1.5rem;
+            text-align: center;
+            color: #1f2937;
+        }
+
+        .dashboard table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1rem;
+        }
+
+        .dashboard table th,
+        .dashboard table td {
+            padding: 0.75rem;
+            border: 1px solid #d1d5db;
+            text-align: left;
+        }
+
+        .dashboard table th {
+            background-color: rgba(243, 244, 246, 0.9); /* Slightly opaque for readability */
+            font-weight: bold;
+        }
+
+        .dashboard table td {
+            color: #4b5563;
+            background-color: rgba(255, 255, 255, 0.9); /* Opaque background for table cells */
+        }
+
+        .payment-instructions {
+            margin-top: 1rem;
+            padding: 1rem;
+            background-color: rgba(243, 244, 246, 0.9);
+            border-radius: 0.375rem;
+            color: #1f2937;
+        }
+
+        .payment-instructions img {
+            max-width: 100%;
+            margin-top: 1rem;
+            border: 1px solid #d1d5db;
+            border-radius: 0.375rem;
+        }
+
+        .referral-section {
+            margin-top: 2rem;
+            padding: 1rem;
+            background-color: rgba(243, 244, 246, 0.9);
+            border-radius: 0.375rem;
+            text-align: center;
+        }
+
+        .referral-section input {
+            width: 100%;
+            padding: 0.5rem;
+            margin-top: 0.5rem;
+            border: 1px solid #d1d5db;
+            border-radius: 0.375rem;
+            font-size: 1rem;
+        }
+
+        .referral-section button {
+            margin-top: 0.5rem;
+            background-color: #10b981;
+            color: white;
+            padding: 0.5rem 1rem;
+            border: none;
+            border-radius: 0.375rem;
+            cursor: pointer;
+        }
+
+        .referral-section button:hover {
+            background-color: #059669;
+        }
+
+        .timer {
+            margin-top: 1rem;
+            font-size: 1rem;
+            color: #1f2937;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <nav>
+        <div class="nav-container">
+            <div class="nav-logo">
+                <span>💰</span>
+                <h1>InvestWise</h1>
+            </div>
+            <div class="nav-links">
+                <a href="#home">Home</a>
+                <a href="#signup">Sign Up</a>
+                <a href="#login">Login</a>
+                <a href="#dashboard" id="dashboard-link" style="display: none;">Dashboard</a>
+            </div>
+        </div>
+    </nav>
+
+    <section id="home" class="section">
+        <div class="content">
+            <h2>Welcome to InvestWise</h2>
+            <p>Your journey to smart investing starts here. Join us to manage your investments with ease.</p>
+            <a href="#signup" class="btn">Get Started</a>
+        </div>
+    </section>
+
+    <section id="signup" class="section">
+        <div class="form-container">
+            <h2>Sign Up</h2>
+            <div id="signup-error" class="error" style="display: none;"></div>
+            <div class="form-group">
+                <label for="signup-email">Email</label>
+                <input type="email" id="signup-email" required>
+            </div>
+            <div class="form-group">
+                <label for="signup-password">Password</label>
+                <input type="password" id="signup-password" required>
+            </div>
+            <div class="form-group">
+                <label for="signup-confirm-password">Confirm Password</label>
+                <input type="password" id="signup-confirm-password" required>
+            </div>
+            <button onclick="handleSignup()">Sign Up</button>
+        </div>
+    </section>
+
+    <section id="login" class="section">
+        <div class="form-container">
+            <h2>Login</h2>
+            <div id="login-error" class="error" style="display: none;"></div>
+            <div class="form-group">
+                <label for="login-email">Email</label>
+                <input type="email" id="login-email" required>
+            </div>
+            <div class="form-group">
+                <label for="login-password">Password</label>
+                <input type="password" id="login-password" required>
+            </div>
+            <button onclick="handleLogin()">Login</button>
+        </div>
+    </section>
+
+    <section id="dashboard" class="section" style="display: none;">
+        <div class="dashboard">
+            <h2>Investment Dashboard</h2>
+            <div id="dashboard-error" class="error" style="display: none;"></div>
+            <div id="investment-form">
+                <div class="form-group">
+                    <label for="investment-amount">Investment Amount (UGX, min 50,000)</label>
+                    <input type="number" id="investment-amount" min="50000" required>
+                </div>
+                <div class="form-group">
+                    <label for="payment-method">Payment Method</label>
+                    <select id="payment-method" required>
+                        <option value="" disabled selected>Select payment method</option>
+                        <option value="MTN">MTN Mobile Money</option>
+                        <option value="Airtel">Airtel Money</option>
+                    </select>
+                </div>
+                <button onclick="handleInvestment()">Proceed to Payment</button>
+            </div>
+            <div id="payment-instructions" class="payment-instructions" style="display: none;">
+                <p>Please send <span id="payment-amount"></span> to <strong>+256784484300</strong> using <span id="payment-provider"></span>.</p>
+                <p>After completing the payment, upload a screenshot of the transaction below.</p>
+                <div class="form-group">
+                    <label for="transaction-screenshot">Upload Transaction Screenshot</label>
+                    <input type="file" id="transaction-screenshot" accept="image/*" required>
+                </div>
+                <button onclick="handleScreenshotUpload()">Submit Screenshot</button>
+                <div id="screenshot-preview" style="display: none;">
+                    <p>Uploaded Screenshot:</p>
+                    <img id="screenshot-image" alt="Transaction Screenshot">
+                </div>
+                <div id="payment-timer" class="timer" style="display: none;">
+                    Time since payment: <span id="timer-display">0 days, 0 hours, 0 minutes, 0 seconds</span>
+                </div>
+            </div>
+            <table id="profit-table" style="display: none;">
+                <thead>
+                    <tr>
+                        <th>Day</th>
+                        <th>Investment (UGX)</th>
+                        <th>Daily Profit (UGX)</th>
+                        <th>Referral Profit (UGX)</th>
+                        <th>Total Profit (UGX)</th>
+                    </tr>
+                </thead>
+                <tbody id="profit-table-body"></tbody>
+            </table>
+            <div class="referral-section">
+                <h3>Refer Friends and Earn More!</h3>
+                <p>Invite friends using your referral link and earn 2x your daily profit per referral.</p>
+                <p>Number of Referrals: <span id="referral-count">0</span></p>
+                <input id="referral-link" value="" readonly>
+                <button onclick="copyReferralLink()">Copy Referral Link</button>
+            </div>
+        </div>
+    </section>
+
+    <script>
+        let investmentData = {
+            amount: 0,
+            startDate: null,
+            profits: [],
+            paymentMethod: null,
+            referralCount: 2, // Simulated for demo; replace with backend tracking
+            uploadTime: null
+        };
+
+        let timerInterval = null;
+
+        function handleSignup() {
+            const email = document.getElementById('signup-email').value;
+            const password = document.getElementById('signup-password').value;
+            const confirmPassword = document.getElementById('signup-confirm-password').value;
+            const errorDiv = document.getElementById('signup-error');
+
+            if (password !== confirmPassword) {
+                errorDiv.textContent = 'Passwords do not match';
+                errorDiv.style.display = 'block';
+                return;
+            }
+
+            errorDiv.style.display = 'none';
+            console.log('Signup data:', { email, password });
+            alert('Signup successful! Welcome to your dashboard.');
+
+            document.getElementById('signup').style.display = 'none';
+            document.getElementById('login').style.display = 'none';
+            document.getElementById('dashboard').style.display = 'flex';
+            document.getElementById('dashboard-link').style.display = 'inline';
+            document.querySelectorAll('.nav-links a[href="#signup"], .nav-links a[href="#login"]').forEach(link => {
+                link.style.display = 'none';
+            });
+
+            // Generate referral link pointing to website's signup page
+            const referralLink = `https://investwise.example.com/#signup?ref=${btoa(email).substring(0, 8)}`;
+            document.getElementById('referral-link').value = referralLink;
+            document.getElementById('referral-count').textContent = investmentData.referralCount;
+
+            window.location.hash = '#dashboard';
+        }
+
+        function handleLogin() {
+            const email = document.getElementById('login-email').value;
+            const password = document.getElementById('login-password').value;
+            const errorDiv = document.getElementById('login-error');
+
+            errorDiv.style.display = 'none';
+            console.log('Login data:', { email, password });
+            alert('Login successful!');
+
+            document.getElementById('login').style.display = 'none';
+            document.getElementById('signup').style.display = 'none';
+            document.getElementById('dashboard').style.display = 'flex';
+            document.getElementById('dashboard-link').style.display = 'inline';
+            document.querySelectorAll('.nav-links a[href="#signup"], .nav-links a[href="#login"]').forEach(link => {
+                link.style.display = 'none';
+            });
+
+            // Generate referral link pointing to website's signup page
+            const referralLink = `https://investwise.example.com/#signup?ref=${btoa(email).substring(0, 8)}`;
+            document.getElementById('referral-link').value = referralLink;
+            document.getElementById('referral-count').textContent = investmentData.referralCount;
+
+            window.location.hash = '#dashboard';
+        }
+
+        function handleInvestment() {
+            const amount = parseFloat(document.getElementById('investment-amount').value);
+            const paymentMethod = document.getElementById('payment-method').value;
+            const errorDiv = document.getElementById('dashboard-error');
+
+            if (isNaN(amount) || amount < 50000) {
+                errorDiv.textContent = 'Investment must be at least 50,000 UGX';
+                errorDiv.style.display = 'block';
+                return;
+            }
+
+            if (!paymentMethod) {
+                errorDiv.textContent = 'Please select a payment method';
+                errorDiv.style.display = 'block';
+                return;
+            }
+
+            errorDiv.style.display = 'none';
+            investmentData.amount = amount;
+            investmentData.paymentMethod = paymentMethod;
+
+            document.getElementById('investment-form').style.display = 'none';
+            document.getElementById('payment-instructions').style.display = 'block';
+            document.getElementById('payment-amount').textContent = amount.toLocaleString('en-UG', { style: 'currency', currency: 'UGX' });
+            document.getElementById('payment-provider').textContent = paymentMethod;
+        }
+
+        function handleScreenshotUpload() {
+            const screenshotInput = document.getElementById('transaction-screenshot');
+            const errorDiv = document.getElementById('dashboard-error');
+
+            if (!screenshotInput.files || screenshotInput.files.length === 0) {
+                errorDiv.textContent = 'Please upload a transaction screenshot';
+                errorDiv.style.display = 'block';
+                return;
+            }
+
+            const file = screenshotInput.files[0];
+            const reader = new FileReader();
+            reader.onload = function (e) {
+                const img = document.getElementById('screenshot-image');
+                img.src = e.target.result;
+                document.getElementById('screenshot-preview').style.display = 'block';
+                
+                console.log('Screenshot uploaded:', file.name);
+                investmentData.startDate = new Date();
+                investmentData.uploadTime = new Date();
+                document.getElementById('payment-instructions').style.display = 'none';
+                document.getElementById('profit-table').style.display = 'table';
+                document.getElementById('payment-timer').style.display = 'block';
+                startTimer();
+                updateProfitTable();
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function startTimer() {
+            if (timerInterval) clearInterval(timerInterval); // Clear any existing timer
+            timerInterval = setInterval(() => {
+                if (!investmentData.uploadTime) return;
+                const now = new Date();
+                const elapsed = now - new Date(investmentData.uploadTime);
+                const days = Math.floor(elapsed / (1000 * 60 * 60 * 24));
+                const hours = Math.floor((elapsed % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                const minutes = Math.floor((elapsed % (1000 * 60 * 60)) / (1000 * 60));
+                const seconds = Math.floor((elapsed % (1000 * 60)) / 1000);
+                document.getElementById('timer-display').textContent = `${days} days, ${hours} hours, ${minutes} minutes, ${seconds} seconds`;
+            }, 1000);
+        }
+
+        function copyReferralLink() {
+            const referralLink = document.getElementById('referral-link');
+            referralLink.select();
+            document.execCommand('copy');
+            alert('Referral link copied to clipboard!');
+        }
+
+        function updateProfitTable() {
+            const tableBody = document.getElementById('profit-table-body');
+            tableBody.innerHTML = '';
+
+            if (!investmentData.amount) return;
+
+            const today = new Date();
+            const daysPassed = Math.floor((today - new Date(investmentData.startDate)) / (1000 * 60 * 60 * 24)) + 1;
+
+            let totalProfit = 0;
+            for (let day = 1; day <= daysPassed; day++) {
+                const dailyProfit = investmentData.amount * 0.10;
+                const referralProfit = investmentData.amount * 0.20 * investmentData.referralCount;
+                totalProfit += (dailyProfit + referralProfit);
+
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${day}</td>
+                    <td>${investmentData.amount.toLocaleString('en-UG', { style: 'currency', currency: 'UGX' })}</td>
+                    <td>${dailyProfit.toLocaleString('en-UG', { style: 'currency', currency: 'UGX' })}</td>
+                    <td>${referralProfit.toLocaleString('en-UG', { style: 'currency', currency: 'UGX' })}</td>
+                    <td>${totalProfit.toLocaleString('en-UG', { style: 'currency', currency: 'UGX' })}</td>
+                `;
+                tableBody.appendChild(row);
+            }
+        }
+
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const targetId = this.getAttribute('href').substring(1);
+                const targetElement = document.getElementById(targetId);
+                window.scrollTo({
+                    top: targetElement.offsetTop - 60,
+                    behavior: 'smooth'
+                });
+                window.location.hash = targetId;
+            });
+        });
+
+        setInterval(updateProfitTable, 24 * 60 * 60 * 1000);
+    </script>
+</body>
+</html>
